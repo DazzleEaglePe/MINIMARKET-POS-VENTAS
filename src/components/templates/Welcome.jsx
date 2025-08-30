@@ -2,11 +2,29 @@ import styled from "styled-components";
 
 import { useAuthStore } from "../../index";
 import { NieveComponente } from "../organismos/NieveComponente";
+import { confirm } from "../../utils/confirm";
+import { navigateWithFallback } from "../../utils/navigation";
+import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 export function Welcome() {
   const { cerrarSesion } = useAuthStore();
-  function cerrar(){
-    cerrarSesion()
-   
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  async function cerrar(){
+    const ok = await confirm({
+      title: "¿Cerrar sesión?",
+      text: "Se cerrará tu sesión actual.",
+      icon: "question",
+      iconColor: "#ff4d4f",
+      showCloseButton: true,
+      confirmButtonText: "Sí, salir",
+      cancelButtonText: "Cancelar",
+      customClass: { confirmButton: "swal2-logout" },
+    });
+    if (!ok) return;
+  await cerrarSesion();
+  queryClient.clear();
+    navigateWithFallback(navigate, '/login');
   }
   return (
     <Container>

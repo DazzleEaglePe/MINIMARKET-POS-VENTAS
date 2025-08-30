@@ -4,24 +4,34 @@ import { useCierreCajaStore } from "../../../store/CierreCajaStore";
 import { Device } from "../../../styles/breakpoints";
 import { Icon } from "@iconify/react/dist/iconify.js";
 import { useVentasStore } from "../../../store/VentasStore";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { confirmAndRun, isCancelledError } from "../../../utils/confirm";
 export function MenuFlotante() {
   const [isOpen, setIsOpen] = useState(false);
   const { eliminarVenta,idventa } = useVentasStore();
   const { setStateIngresoSalida, setTipoRegistro, setStateCierraCaja } =
   useCierreCajaStore();
   const queryClient = useQueryClient()
-  const {mutate:mutateEliminarVenta,isPending} = useMutation({
+  const {mutate:mutateEliminarVenta} = useMutation({
     mutationKey:["eliminar venta"],
     mutationFn: ()=>{
       if(idventa>0){
-       return eliminarVenta({id:idventa})
+        return confirmAndRun(() => eliminarVenta({id:idventa}), {
+          title: "¿Eliminar venta actual?",
+          text: "Se eliminarán sus detalles asociados.",
+          icon: "warning",
+          showCloseButton: true,
+          confirmButtonText: "Sí, eliminar",
+          cancelButtonText: "Cancelar",
+          variant: "danger",
+        })
       }else{
         return Promise.reject(new Error("Sin registro de venta para eliminar"))
       }
     },
     onError:(error)=>{
+      if (isCancelledError(error)) return;
       toast.error(`Error: ${error.message}`)
     },
     onSuccess:()=>{

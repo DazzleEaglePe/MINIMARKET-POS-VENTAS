@@ -16,8 +16,12 @@ import { useFormattedDate } from "../../../../hooks/useFormattedDate";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { BarLoader } from "react-spinners";
+import Swal from "sweetalert2";
+import { navigateWithFallback, safeStayOrRedirect } from "../../../../utils/navigation";
+import { useNavigate } from "react-router-dom";
 export function PantallaConteoCaja() {
   const { cerrarSesion } = useAuthStore();
+  const navigate = useNavigate();
   const [montoEfectivo, setMontoEfectivo] = useState(0);
   const { totalEfectivoTotalCaja } = useMovCajaStore();
   const { datausuarios } = useUsuariosStore();
@@ -59,7 +63,25 @@ export function PantallaConteoCaja() {
       setStateCierraCaja(false);
       reset();
       queryClient.invalidateQueries(["mostrar cierre de caja"]);
-      cerrarSesion();
+      // Único modal post-cierre: seguir o cerrar sesión
+      Swal.fire({
+        icon: "success",
+        title: "Caja cerrada",
+        text: "El turno se cerró correctamente.",
+  showDenyButton: true,
+        confirmButtonText: "Seguir aquí",
+        denyButtonText: "Cerrar sesión",
+        reverseButtons: true,
+        customClass: { denyButton: "swal2-danger" },
+      }).then(async (res) => {
+        if (res.isDenied) {
+          await cerrarSesion();
+          navigateWithFallback(navigate, '/login');
+        } else if (res.isConfirmed) {
+          // Stay on POS safely; if already on /pos, reload to ensure fresh state
+          safeStayOrRedirect(navigate, { strategy: 'goto-pos', targetPath: '/pos' });
+        }
+      });
     },
     onError: (error) => {
       toast.error(`Error al cerrar caja: ${error.message}`);

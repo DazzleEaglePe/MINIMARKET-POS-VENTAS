@@ -35,16 +35,15 @@ export const LandingPagesWelcome = () => {
       <ContentSection>
         <SubContentSection>
           <LeftSection className="left-section">
-            <h1>POS VENTAS CON REACT.JS {datausuarios?.id} </h1>
+            <h1>GESTIONA TUS VENTAS {datausuarios?.nombres.toUpperCase()} </h1>
             <Step>
               <IconPlaceholder>
                 <img src="https://i.ibb.co/h19LCXP/aprendiendo.png" />
               </IconPlaceholder>
               <Text>
-                <Title>Aprende desde cero</Title>
+                <Title>Gestiona tu minimarket de manera eficiente</Title>
                 <Description>
-                  Descubre cómo crear tu sistema de postventa profesional paso a
-                  paso.
+                  Optimiza tus operaciones y ventas de tu minimarket con un sistema todo en uno.
                 </Description>
               </Text>
             </Step>
@@ -53,9 +52,9 @@ export const LandingPagesWelcome = () => {
                 <img src="https://i.ibb.co/RBXt8Fs/taladro-de-mano.png" />
               </IconPlaceholder>
               <Text>
-                <Title>Domina herramientas esenciales</Title>
+                <Title>Controla tu inventario y ventas de manera fácil</Title>
                 <Description>
-                  Desarrolla habilidades clave en programación.
+                  Administra el inventario de tu minimarket y mantén un control total de las ventas.
                 </Description>
               </Text>
             </Step>
@@ -64,16 +63,16 @@ export const LandingPagesWelcome = () => {
                 <img src="https://i.ibb.co/QPFxqC3/ejecutante.png" />
               </IconPlaceholder>
               <Text>
-                <Title>Aplica lo aprendido</Title>
+                <Title>Sistema de ventas simplificado</Title>
                 <Description>
-                  Desde la idea inicial hasta la implementación.
-                </Description>
+                  Domina herramientas clave para mejorar la experiencia de compra y aumentar la satisfacción del cliente.
+                </Description> 
               </Text>
             </Step>
             
             <div style={{ display: "flex", gap: "10px" }}>
-            <BtnLink url={"https://codigo369.com/detallecurso/24"} color={"#fff"} bgcolor={"#ff6a00"} titulo={"inscribete aquí"} />
-              <BtnLink url={"https://t.me/ada369react"} color={"#2f2f2f"} bgcolor={"#ffffff"} titulo={"+ grupo telegram"} />
+            <BtnLink url={"/"} color={"#fff"} bgcolor={"#ff6a00"} titulo={"Comenzar a vender"} />
+              <BtnLink url={"/"} color={"#2f2f2f"} bgcolor={"#ffffff"} titulo={"Saber más"} />
             </div>
           </LeftSection>
           <RightSection className="right-section">
@@ -130,7 +129,7 @@ export const LandingPagesWelcome = () => {
         <FooterContent>
           <FooterItem>
             <FooterIcon>
-              <img src="https://i.ibb.co/3vfgvTB/mujer-de-negocios.png" />
+              <img src="" />
             </FooterIcon>
             <FooterText>
               <FooterTextTitle>FRONTEND</FooterTextTitle>
@@ -141,7 +140,7 @@ export const LandingPagesWelcome = () => {
           </FooterItem>
           <FooterItem>
             <FooterIcon>
-              <img src="https://i.ibb.co/4fDChm8/nalga-1.png" />
+              <img src="" />
             </FooterIcon>
             <FooterText>
               <FooterTextTitle>BACKEND</FooterTextTitle>

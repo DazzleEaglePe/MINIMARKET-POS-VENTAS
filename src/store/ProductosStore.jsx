@@ -1,8 +1,5 @@
 import { create } from "zustand";
-import {
-  BuscarProductos,MostrarProductos,EliminarProductos,InsertarProductos,EditarProductos, Generarcodigo,
-  supabase
-} from "../index";
+import { BuscarProductos, MostrarProductos, EliminarProductos, InsertarProductos, EditarProductos, Generarcodigo, supabase } from "../index";
 const tabla ="productos"
 export const useProductosStore = create((set, get) => ({
   refetchs:null,

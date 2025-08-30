@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import styled from "styled-components";
 import {
   ContentAccionesTabla,
@@ -7,6 +8,8 @@ import {
 import Swal from "sweetalert2";
 import { v } from "../../../styles/variables";
 import { useState } from "react";
+import { confirm, isCancelledError } from "../../../utils/confirm";
+import { toast } from "sonner";
 import {
   flexRender,
   getCoreRowModel,
@@ -22,10 +25,9 @@ export function TablaCategorias({
   setdataSelect,
   setAccion,
 }) {
-  if (data==null) return;
-  const [pagina, setPagina] = useState(1);
-  const [datas, setData] = useState(data);
-  const [columnFilters, setColumnFilters] = useState([]);
+  const safeData = data || [];
+  const [, setData] = useState(safeData);
+  const [columnFilters] = useState([]);
 
   const { eliminarCategoria } = useCategoriasStore();
   function eliminar(p) {
@@ -34,36 +36,38 @@ export function TablaCategorias({
         icon: "error",
         title: "Oops...",
         text: "Este registro no se permite modificar ya que es valor por defecto.",
-        footer: '<a href="">...</a>',
       });
       return;
     }
-    Swal.fire({
-      title: "¿Estás seguro(a)(e)?",
-      text: "Una vez eliminado, ¡no podrá recuperar este registro!",
+    confirm({
+      title: "¿Eliminar categoría?",
+      text: "Una vez eliminada, no podrá recuperarla.",
       icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#3085d6",
-      cancelButtonColor: "#d33",
-      confirmButtonText: "Si, eliminar",
-    }).then(async (result) => {
-      if (result.isConfirmed) {
+      showCloseButton: true,
+      confirmButtonText: "Sí, eliminar",
+      cancelButtonText: "Cancelar",
+      variant: "danger",
+    })
+      .then(async (ok) => {
+        if (!ok) return;
         await eliminarCategoria({ id: p.id });
-      }
-    });
+      })
+      .catch((err) => {
+        if (isCancelledError(err)) return;
+        toast.error("Error al eliminar: " + err.message);
+      });
   }
-  function editar(data) {
-    if (data.nombre === "General") {
+  function editar(row) {
+    if (row.nombre === "General") {
       Swal.fire({
         icon: "error",
         title: "Oops...",
         text: "Este registro no se permite modificar ya que es valor por defecto.",
-        footer: '<a href="">...</a>',
       });
       return;
     }
-    SetopenRegistro(true);
-    setdataSelect(data);
+  SetopenRegistro(true);
+    setdataSelect(row);
     setAccion("Editar");
   }
   const columns = [
@@ -140,7 +144,7 @@ export function TablaCategorias({
     },
   ];
   const table = useReactTable({
-    data,
+    data: safeData,
     columns,
     state: {
       columnFilters,
@@ -223,7 +227,6 @@ export function TablaCategorias({
           table={table}
           irinicio={() => table.setPageIndex(0)}
           pagina={table.getState().pagination.pageIndex + 1}
-          setPagina={setPagina}
           maximo={table.getPageCount()}
         />
       </Container>

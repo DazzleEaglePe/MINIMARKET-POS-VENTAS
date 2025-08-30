@@ -1,16 +1,38 @@
 import { create } from "zustand";
-import { supabase, MostrarUsuarios, ObtenerIdAuthSupabase } from "../index";
-import { useQueryClient } from "@tanstack/react-query";
+import { supabase } from "../index";
+import { hardRedirect } from "../utils/navigation";
+import { useUsuariosStore } from "./UsuariosStore";
+import { usePermisosStore } from "./PermisosStore";
 
-export const useAuthStore = create((set) => ({
+export const useAuthStore = create(() => ({
   loginGoogle: async () => {
     await supabase.auth.signInWithOAuth({
       provider: "google",
+      options: {
+        // Fuerza selector de cuenta para evitar reutilizar sesión previa de Google
+  queryParams: { prompt: "select_account" },
+  redirectTo: `${window.location.origin}/auth/callback`,
+      },
     });
   },
   cerrarSesion: async () => {
+    // Cerrar sesión en Supabase
     await supabase.auth.signOut();
- 
+    // Limpiar estados locales mínimos para evitar residuos entre usuarios
+    try {
+      useUsuariosStore.setState({ datausuarios: [] });
+      usePermisosStore.setState({
+        datapermisos: [],
+        dataPermisosGlobales: null,
+        selectedModules: [],
+      });
+    } catch (e) {
+      // ignore state reset errors
+    }
+    // Forzar redirección a login como último recurso, incluso si no estamos en una ruta protegida
+    try {
+      hardRedirect('/login');
+    } catch (_) { /* ignore */ }
   },
   loginEmail: async (p) => {
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -32,6 +54,9 @@ export const useAuthStore = create((set) => ({
       password: p.password,
       
     })
+    if (error) {
+      throw new Error(error.message);
+    }
     return data.user
   },
   // obtenerIdAuthSupabase: async () => {

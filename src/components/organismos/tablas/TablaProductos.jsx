@@ -1,10 +1,6 @@
 import styled from "styled-components";
-import {
-  Checkbox1,
-  ContentAccionesTabla,
-  Paginacion,
-  useProductosStore,
-} from "../../../index";
+import PropTypes from "prop-types";
+import { Checkbox1, ContentAccionesTabla, Paginacion, useProductosStore } from "../../../index";
 import Swal from "sweetalert2";
 import { v } from "../../../styles/variables";
 import { useState } from "react";
@@ -23,10 +19,11 @@ export function TablaProductos({
   setdataSelect,
   setAccion,
 }) {
-  if (data == null) return;
-  const [pagina, setPagina] = useState(1);
-  const [datas, setData] = useState(data);
-  const [columnFilters, setColumnFilters] = useState([]);
+  // Evitar retornar antes de los hooks; usar datos seguros
+  const safeData = data || [];
+  const [, setPagina] = useState(1); // setter used by Paginacion
+  const [, setData] = useState(safeData);
+  const [columnFilters] = useState([]);
 
   const { eliminarProductos } = useProductosStore();
   function eliminar(p) {
@@ -49,7 +46,21 @@ export function TablaProductos({
       confirmButtonText: "Si, eliminar",
     }).then(async (result) => {
       if (result.isConfirmed) {
-        await eliminarProductos({ id: p.id });
+        try {
+          await eliminarProductos({ id: p.id });
+          Swal.fire({
+            icon: "success",
+            title: "Eliminado",
+            timer: 1600,
+            showConfirmButton: false,
+          });
+        } catch (error) {
+          const msg =
+            error?.code === "23503"
+              ? "Este producto ya fue usado en ventas y no puede eliminarse para preservar el historial. Te recomiendo archivarlo (soft delete)."
+              : error?.message || "No se pudo eliminar el producto.";
+          Swal.fire({ icon: "error", title: "No se pudo eliminar", text: msg });
+        }
       }
     });
   }
@@ -157,7 +168,7 @@ export function TablaProductos({
     },
   ];
   const table = useReactTable({
-    data,
+    data: safeData,
     columns,
     state: {
       columnFilters,
@@ -240,6 +251,13 @@ export function TablaProductos({
     </>
   );
 }
+
+TablaProductos.propTypes = {
+  data: PropTypes.array,
+  SetopenRegistro: PropTypes.func.isRequired,
+  setdataSelect: PropTypes.func.isRequired,
+  setAccion: PropTypes.func.isRequired,
+};
 const Container = styled.div`
   position: relative;
 

@@ -217,7 +217,7 @@ export const IngresoCobro = forwardRef((props, ref) => {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("printerName", dataImpresorasPorCaja?.name);
-    const responseApi = await fetch("http://localhost:5075/api/print-ticket", {
+  const responseApi = await fetch("/local-print/api/print-ticket", {
       method: "POST",
       body: formData,
     });

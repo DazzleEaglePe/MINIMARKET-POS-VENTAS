@@ -1,13 +1,15 @@
+/* eslint-disable react/prop-types */
 import styled from "styled-components";
 import {
   ContentAccionesTabla,
-  useCategoriasStore,
-  Paginacion,ImagenContent, Icono,
+  Paginacion,
   useClientesProveedoresStore
 } from "../../../index";
 import Swal from "sweetalert2";
 import { v } from "../../../styles/variables";
 import { useState } from "react";
+import { confirm, isCancelledError } from "../../../utils/confirm";
+import { toast } from "sonner";
 import {
   flexRender,
   getCoreRowModel,
@@ -23,10 +25,9 @@ export function TablaClientesProveedores({
   setdataSelect,
   setAccion,
 }) {
-  if (data==null) return;
-  const [pagina, setPagina] = useState(1);
-  const [datas, setData] = useState(data);
-  const [columnFilters, setColumnFilters] = useState([]);
+  const safeData = data || [];
+  const [, setData] = useState(safeData);
+  const [columnFilters] = useState([]);
 
   const { eliminarCliPro } = useClientesProveedoresStore();
   function eliminar(p) {
@@ -35,36 +36,34 @@ export function TablaClientesProveedores({
         icon: "error",
         title: "Oops...",
         text: "Este registro no se permite modificar ya que es valor por defecto.",
-        footer: '<a href="">...</a>',
       });
       return;
     }
-    Swal.fire({
-      title: "¿Estás seguro(a)(e)?",
-      text: "Una vez eliminado, ¡no podrá recuperar este registro!",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#3085d6",
-      cancelButtonColor: "#d33",
-      confirmButtonText: "Si, eliminar",
-    }).then(async (result) => {
-      if (result.isConfirmed) {
+    confirm({
+      title: "¿Eliminar registro?",
+      text: "Una vez eliminado, no podrá recuperarlo.",
+      confirmButtonText: "Sí, eliminar",
+    })
+      .then(async (ok) => {
+        if (!ok) return;
         await eliminarCliPro({ id: p.id });
-      }
-    });
+      })
+      .catch((err) => {
+        if (isCancelledError(err)) return;
+        toast.error("Error al eliminar: " + err.message);
+      });
   }
-  function editar(data) {
-    if (data.nombre === "General") {
+  function editar(row) {
+    if (row.nombre === "General") {
       Swal.fire({
         icon: "error",
         title: "Oops...",
         text: "Este registro no se permite modificar ya que es valor por defecto.",
-        footer: '<a href="">...</a>',
       });
       return;
     }
     SetopenRegistro(true);
-    setdataSelect(data);
+    setdataSelect(row);
     setAccion("Editar");
   }
   const columns = [
@@ -148,7 +147,7 @@ export function TablaClientesProveedores({
     },
   ];
   const table = useReactTable({
-    data,
+    data: safeData,
     columns,
     state: {
       columnFilters,
@@ -227,17 +226,18 @@ export function TablaClientesProveedores({
             ))}
           </tbody>
         </table>
-        <Paginacion
+  <Paginacion
           table={table}
           irinicio={() => table.setPageIndex(0)}
           pagina={table.getState().pagination.pageIndex + 1}
-          setPagina={setPagina}
           maximo={table.getPageCount()}
         />
       </Container>
     </>
   );
 }
+
+// Prop types validation disabled intentionally for this component to keep consistency with rest of codebase.
 const Container = styled.div`
   position: relative;
 
@@ -389,12 +389,4 @@ const Container = styled.div`
     }
   }
 `;
-const Colorcontent = styled.div`
-  justify-content: center;
-  min-height: ${(props) => props.$alto};
-  width: ${(props) => props.$ancho};
-  display: flex;
-  background-color: ${(props) => props.color};
-  border-radius: 50%;
-  text-align: center;
-`;
+

@@ -6,14 +6,12 @@ import { BarLoader } from "react-spinners";
 import { Icon } from "@iconify/react/dist/iconify.js";
 import { Device } from "../../../styles/breakpoints";
 import { ButtonDashed } from "../../ui/buttons/ButtonDashed";
-import { useCajasStore } from "../../../store/CajasStore";
-import Swal from "sweetalert2";
 import { toast } from "sonner";
 import { useAlmacenesStore } from "../../../store/AlmacenesStore";
+import { confirmAndRun, isCancelledError } from "../../../utils/confirm";
 export const ListAlmacenes = () => {
   const queryClient = useQueryClient();
   const {
-    mostrarCajasXSucursal,
     setStateSucursal,
     setAccion,
     selectSucursal,
@@ -50,58 +48,24 @@ export const ListAlmacenes = () => {
     setAccionAlmacen("Editar");
     setAlmacenSelectItem(p);
   };
-  const controladorEliminarAlmacen = (id) => {
-    return new Promise((resolve, reject) => {
-      Swal.fire({
-        title: "¿Estás seguro(a)(e)?",
-        text: "Una vez eliminado, se eliminaran todas las ventas relacionadas",
-        icon: "warning",
-        showCancelButton: true,
-        confirmButtonColor: "#3085d6",
-        cancelButtonColor: "#d33",
-        confirmButtonText: "Sí, eliminar",
-      }).then(async (result) => {
-        if (result.isConfirmed) {
-          try {
-            await eliminarAlmacen({ id: id });
-            resolve();
-          } catch (error) {
-            reject(error);
-          }
-        } else {
-          reject(new Error("Eliminación cancelada"));
-        }
-      });
+  const controladorEliminarAlmacen = async (id) =>
+    confirmAndRun(() => eliminarAlmacen({ id }), {
+      title: "¿Eliminar almacén?",
+      text: "Esta acción eliminará datos relacionados.",
+      confirmButtonText: "Sí, eliminar",
     });
-  };
-  const controladorEliminarSucursal = (id) => {
-    return new Promise((resolve, reject) => {
-      Swal.fire({
-        title: "¿Estás seguro(a)(e)?",
-        text: "Una vez eliminado, se eliminaran todas las ventas relacionadas",
-        icon: "warning",
-        showCancelButton: true,
-        confirmButtonColor: "#3085d6",
-        cancelButtonColor: "#d33",
-        confirmButtonText: "Sí, eliminar",
-      }).then(async (result) => {
-        if (result.isConfirmed) {
-          try {
-            await eliminarSucursal({ id: id });
-            resolve();
-          } catch (error) {
-            reject(error);
-          }
-        } else {
-          reject(new Error("Eliminación cancelada"));
-        }
-      });
+
+  const controladorEliminarSucursal = async (id) =>
+    confirmAndRun(() => eliminarSucursal({ id }), {
+      title: "¿Eliminar sucursal?",
+      text: "Se eliminarán ventas relacionadas a esta sucursal.",
+      confirmButtonText: "Sí, eliminar",
     });
-  };
   const { mutate: doDeleteSucursal } = useMutation({
     mutationKey: ["eliminar Sucursal"],
     mutationFn: controladorEliminarSucursal,
     onError: (error) => {
+      if (isCancelledError(error)) return;
       toast.error(`Error: ${error.message}`);
     },
     onSuccess: () => {
@@ -113,6 +77,7 @@ export const ListAlmacenes = () => {
     mutationKey: ["eliminar almacen"],
     mutationFn: controladorEliminarAlmacen,
     onError: (error) => {
+      if (isCancelledError(error)) return;
       toast.error(`Error: ${error.message}`);
     },
     onSuccess: () => {

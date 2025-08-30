@@ -32,7 +32,7 @@ export const useImpresorasStore = create((set, get) => ({
   mostrarDatosPc: async () => {
     try {
       const response = await fetchWithTimeout(
-        "http://localhost:5075/api/get-local-ip",
+        "/local-print/api/get-local-ip",
         5000
       );
       if (!response.ok) {
@@ -45,7 +45,7 @@ export const useImpresorasStore = create((set, get) => ({
     }
   },
   mostrarListaImpresoraLocales: async () => {
-    const response = await fetch("http://localhost:5075/api/list");
+  const response = await fetch("/local-print/api/list");
     if (!response.ok) {
       return;
     }

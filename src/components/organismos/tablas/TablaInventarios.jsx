@@ -9,7 +9,7 @@ import {
 } from "../../../index";
 import Swal from "sweetalert2";
 import { v } from "../../../styles/variables";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   flexRender,
   getCoreRowModel,
@@ -27,11 +27,13 @@ export function TablaInventarios({
   setdataSelect,
   setAccion,
 }) {
-  if (data == null) return;
   const [pagina, setPagina] = useState(1);
-  const [datas, setData] = useState(data);
+  const [datas, setData] = useState(Array.isArray(data) ? data : []);
   const [columnFilters, setColumnFilters] = useState([]);
   const queryClient = useQueryClient();
+  useEffect(() => {
+    setData(Array.isArray(data) ? data : []);
+  }, [data]);
   const { eliminarUsuarioAsignado } = useUsuariosStore();
   function eliminar(p) {
     Swal.fire({
@@ -143,7 +145,7 @@ export function TablaInventarios({
     },
   ];
   const table = useReactTable({
-    data,
+    data: datas,
     columns,
     state: {
       columnFilters,

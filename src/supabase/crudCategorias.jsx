@@ -30,13 +30,13 @@ async function subirImagen(idcategoria, file) {
     .upload(ruta, file, {
       cacheControl: "0",
       upsert: true,
+      contentType: file?.type || undefined,
     });
   if (error) {
-    Swal.fire({
-      icon: "error",
-      title: "Oops...",
-      text: error.message,
-    });
+    const msg = error.message?.toLowerCase().includes("bucket not found")
+      ? "No se encontró el bucket de Storage 'imagenes'. Crea el bucket en Supabase (Storage → New bucket: 'imagenes') y habilita acceso público o ajusta a URLs firmadas."
+      : error.message;
+    Swal.fire({ icon: "error", title: "Oops...", text: msg });
     return;
   }
   if (data) {
@@ -116,8 +116,15 @@ export async function EditarCategorias(p, fileold, filenew) {
 }
 export async function EditarIconoStorage(id, file) {
   const ruta = "categorias/" + id;
-  await supabase.storage.from("imagenes").update(ruta, file, {
+  const { error } = await supabase.storage.from("imagenes").upload(ruta, file, {
     cacheControl: "0",
     upsert: true,
+    contentType: file?.type || undefined,
   });
+  if (error) {
+    const msg = error.message?.toLowerCase().includes("bucket not found")
+      ? "No se encontró el bucket de Storage 'imagenes'. Crea el bucket en Supabase (Storage → New bucket: 'imagenes') y habilita acceso público o ajusta a URLs firmadas."
+      : error.message;
+    Swal.fire({ icon: "error", title: "Oops...", text: msg });
+  }
 }

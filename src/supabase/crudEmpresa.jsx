@@ -1,4 +1,3 @@
-import Swal from "sweetalert2";
 import { supabase } from "../index";
 const tabla = "empresa";
 export async function InsertarEmpresa(p) {
@@ -50,18 +49,36 @@ export async function EditarEmpresa(p,fileold,filenew){
 
 export async function EditarIconoStorage(id,file){
   const ruta = "empresa/"+id
-  await supabase.storage.from("imagenes").update(ruta,file,{
-    cacheControl:"0",
-    upsert:true
-  })
+  const { error } = await supabase.storage
+    .from("imagenes")
+    .upload(ruta, file, {
+      cacheControl: "0",
+      upsert: true,
+      contentType: file?.type || undefined,
+    });
+  if (error) {
+    // Mensaje más claro cuando el bucket no existe
+    if (error.message?.toLowerCase().includes("bucket not found")) {
+      throw new Error(
+        "No se encontró el bucket de Storage 'imagenes'. Crea el bucket en Supabase (Storage → New bucket: 'imagenes') y habilita acceso público o ajusta a URLs firmadas."
+      );
+    }
+    throw new Error(error.message);
+  }
 }
 async function subirImagen (idempresa,file){
   const ruta = "empresa/"+idempresa
   const {data, error}= await supabase.storage.from("imagenes").upload(ruta,file,{
     cacheControl:"0",
-    upsert:true
+    upsert:true,
+    contentType: file?.type || undefined,
   })
   if(error){
+    if (error.message?.toLowerCase().includes("bucket not found")) {
+      throw new Error(
+        "No se encontró el bucket de Storage 'imagenes'. Crea el bucket en Supabase (Storage → New bucket: 'imagenes') y habilita acceso público o ajusta a URLs firmadas."
+      );
+    }
     throw new Error(error.message);
   }
   if(data){

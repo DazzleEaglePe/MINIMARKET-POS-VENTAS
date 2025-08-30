@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import styled from "styled-components";
 import {
   LinksArray,
@@ -6,18 +7,37 @@ import {
   useAuthStore,
 } from "../../../index";
 import { v } from "../../../styles/variables";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { Icon } from "@iconify/react";
 import { useQueryClient } from "@tanstack/react-query";
+import { confirm } from "../../../utils/confirm";
+import { navigateWithFallback } from "../../../utils/navigation";
 
 
 export function Sidebar({ state, setState }) {
   const {cerrarSesion} = useAuthStore()
   const queryClient = useQueryClient()
+  const navigate = useNavigate();
 //  const salir =()=>{
 //   cerrarSesion()
 //   queryClient.clear();
 //  }
+  const handleLogout = async () => {
+    const ok = await confirm({
+  title: "¿Cerrar sesión?",
+  text: "Se cerrará tu sesión actual.",
+  icon: "question",
+  iconColor: "#ff4d4f",
+  showCloseButton: true,
+  confirmButtonText: "Sí, salir",
+  cancelButtonText: "Cancelar",
+  customClass: { confirmButton: "swal2-logout" },
+    });
+    if (!ok) return;
+  await cerrarSesion();
+  queryClient.clear();
+  navigateWithFallback(navigate, '/login');
+  };
   return (
     <Main $isopen={state.toString()}>
       <span className="Sidebarbutton" onClick={() => setState(!state)}>
@@ -28,7 +48,7 @@ export function Sidebar({ state, setState }) {
           <div className="imgcontent">
             <img src={v.logo} />
           </div>
-          <h2>Ada369 WEB</h2>
+          <h2>Minimarket</h2>
         </div>
         {LinksArray.map(({ icon, label, to }) => (
           <div
@@ -68,21 +88,29 @@ export function Sidebar({ state, setState }) {
           </div>
         ))}
         <div className={state ? "LinkContainer active" : "LinkContainer"}>
-          <div className="Links" onClick={cerrarSesion} >
+          <div
+            className="Links logout"
+            onClick={handleLogout}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") handleLogout();
+            }}
+            title="Cerrar sesión"
+          >
             <section className={state ? "content open" : "content"}>
               <Icon
-                color="#CE82FF"
-                className="Linkicon"
-                icon="heroicons:ellipsis-horizontal-circle-solid"
+                className="Linkicon logout-icon"
+                icon="material-symbols:logout-rounded"
               />
-              <span  className={state ? "label_ver" : "label_oculto"}>SALIR</span>
+              <span className={state ? "label_ver" : "label_oculto"}>SALIR</span>
             </section>
           </div>
          
          
         </div>
 
-        <ToggleTema />
+  <ToggleTema isOpen={state} />
       </Container>
     </Main>
   );
@@ -156,6 +184,8 @@ const Container = styled.div`
     color: ${(props) => props.theme.text};
     height: 60px;
     position: relative;
+  border: 1px solid ${(props) => props.theme.color2};
+  transition: all 0.2s ease-in-out;
     .content {
       display: flex;
       justify-content: center;
@@ -188,8 +218,17 @@ filter:grayscale(100%);
       }
     }
 
-    &:hover {
+    &:hover:not(.logout) {
       background: ${(props) => props.theme.bgAlpha};
+      border-color: ${(props) => props.theme.bg5};
+      .Linkicon{
+        filter: grayscale(0%);
+      }
+    }
+
+    &:focus-visible {
+      outline: 2px solid ${(props) => props.theme.bg5};
+      outline-offset: 2px;
     }
 
     &.active {
@@ -199,6 +238,29 @@ filter:grayscale(100%);
       font-weight: 600;
       .Linkicon{
         filter: grayscale(0%);
+      }
+    }
+
+    &.logout {
+      border: 1px solid ${(props) => props.theme.color2};
+      transition: all 0.2s ease-in-out;
+      .logout-icon {
+        transition: transform 0.15s ease, color 0.15s ease, filter 0.15s ease;
+      }
+      &:hover {
+        background: rgba(255, 77, 79, 0.12); /* rojo suave */
+        border-color: #ff4d4f;
+        color: #ff4d4f;
+        box-shadow: inset 0 0 0 2px rgba(255, 77, 79, 0.15);
+        .logout-icon {
+          filter: grayscale(0%);
+          color: #ff4d4f;
+          transform: translateX(2px);
+        }
+      }
+      &:focus-visible {
+        outline: 2px solid #ff4d4f;
+        outline-offset: 2px;
       }
     }
   }

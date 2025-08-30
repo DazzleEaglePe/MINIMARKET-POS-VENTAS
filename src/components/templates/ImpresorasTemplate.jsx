@@ -103,7 +103,7 @@ export const ImpresorasTemplate = () => {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("printerName", selectImpresora?.name);
-    const responseApi = await fetch("http://localhost:5075/api/print-ticket", {
+  const responseApi = await fetch("/local-print/api/print-ticket", {
       method: "POST",
       body: formData,
     });

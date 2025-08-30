@@ -36,8 +36,14 @@ async function subirImagen(idmetodopago, file) {
     .upload(ruta, file, {
       cacheControl: "0",
       upsert: true,
+      contentType: file?.type || undefined,
     });
   if (error) {
+    if (error.message?.toLowerCase().includes("bucket not found")) {
+      throw new Error(
+        "No se encontró el bucket de Storage 'imagenes'. Crea el bucket en Supabase (Storage → New bucket: 'imagenes') y habilita acceso público o ajusta a URLs firmadas."
+      );
+    }
     throw new Error(error.message);
   }
   if (data) {
@@ -55,10 +61,19 @@ async function EditarIconoMetodosPago(p) {
 }
 export async function EditarIconoStorage(id, file) {
   const ruta = "metodospago/" + id;
-  await supabase.storage.from("imagenes").update(ruta, file, {
+  const { error } = await supabase.storage.from("imagenes").upload(ruta, file, {
     cacheControl: "0",
     upsert: true,
+    contentType: file?.type || undefined,
   });
+  if (error) {
+    if (error.message?.toLowerCase().includes("bucket not found")) {
+      throw new Error(
+        "No se encontró el bucket de Storage 'imagenes'. Crea el bucket en Supabase (Storage → New bucket: 'imagenes') y habilita acceso público o ajusta a URLs firmadas."
+      );
+    }
+    throw new Error(error.message);
+  }
 }
 //
 export async function EditarMetodosPago(p, fileold, filenew) {

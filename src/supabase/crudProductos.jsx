@@ -30,7 +30,20 @@ export async function BuscarProductos(p) {
 export async function EliminarProductos(p) {
   const { error } = await supabase.from(tabla).delete().eq("id", p.id);
   if (error) {
-    throw new Error(error.message);
+    // Postgres 23503 = foreign_key_violation. Happens when the product was used in ventas (detalle_venta)
+    if (error.code === "23503") {
+      const friendly =
+        "No se puede eliminar el producto porque está referenciado en ventas (detalle_venta). Considera desactivarlo en lugar de eliminarlo.";
+      const err = new Error(friendly);
+      err.code = error.code;
+      err.details = error.details;
+      throw err;
+    }
+    // Fallback to the original error message for other cases
+    const err = new Error(error.message || "No se pudo eliminar el producto.");
+    err.code = error.code;
+    err.details = error.details;
+    throw err;
   }
 }
 export async function EditarProductos(p) {

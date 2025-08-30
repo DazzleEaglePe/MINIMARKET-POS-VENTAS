@@ -1,4 +1,4 @@
-import React from "react";
+import { useState } from "react";
 import styled from "styled-components";
 import { InputText2 } from "../components/organismos/formularios/InputText2";
 import { Btn1 } from "../components/moleculas/Btn1";
@@ -11,7 +11,8 @@ import { useUsuariosStore } from "../store/UsuariosStore";
 import { useEditarPerfilMutation } from "../tanstack/UsuariosStack";
 export const MiPerfil = () => {
   const { datausuarios } = useUsuariosStore();
-  const {mutate,isPending} = useEditarPerfilMutation()
+  const { mutate } = useEditarPerfilMutation();
+  const [saving, setSaving] = useState(false);
   const {
     register,
     formState: { errors },
@@ -23,12 +24,18 @@ export const MiPerfil = () => {
       telefono: datausuarios?.telefono || "",
     },
   });
+  const onSubmit = (formData) => {
+    setSaving(true);
+    // Ejecuta la mutación y siempre cierra el estado de guardado
+    mutate(formData, {
+      onSettled: () => setSaving(false),
+    });
+  };
+
   return (
     <Container>
        <Toaster position="top-right" />
-      {isPending ? (
-        <span>guardando...🐖</span>
-      ) : (
+      {saving && <span>guardando...🐖</span>}
         <>
           <Title>Mi Perfil</Title> 
           <Avatar>
@@ -37,7 +44,7 @@ export const MiPerfil = () => {
             </ContentRol>
             <span className="nombre">{datausuarios?.nombres}</span>
           </Avatar>
-          <form onSubmit={handleSubmit(mutate)}>
+          <form onSubmit={handleSubmit(onSubmit)}>
             <Label>Nombres</Label>
             <InputText2>
               <input
@@ -86,10 +93,11 @@ export const MiPerfil = () => {
               />
             </InputText2>
             <br></br>
-            <Btn1 bgcolor="#0930bb" color="#fff" titulo="GUARDAR CAMBIOS" />
+            <div style={{ opacity: saving ? 0.6 : 1 }}>
+              <Btn1 bgcolor="#0930bb" color="#fff" titulo={saving ? "GUARDANDO..." : "GUARDAR CAMBIOS"} />
+            </div>
           </form>
         </>
-      )}
     </Container>
   );
 };

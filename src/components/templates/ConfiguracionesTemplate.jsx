@@ -2,7 +2,19 @@ import styled from "styled-components";
 import fondocuadros from "../../assets/fondocuadros.svg";
 import { Link } from "react-router-dom";
 import { useEffect } from "react";
-import { useModulosStore } from "../../index";
+import { useModulosStore, Lottieanimacion } from "../../index";
+import empresaAnimated from "../../assets/icons/empresaAnimated.json";
+import impresoraAnimada from "../../assets/icons/impresoraAnimada.json";
+import almacenAnimated from "../../assets/icons/almacenAnimated.json";
+import categoriaAnimated from "../../assets/icons/categoriaAnimated.json";
+import clienteAnimated from "../../assets/icons/clienteAnimated.json";
+import comprobantesAnimated from "../../assets/icons/comprobantesAnimated.json";
+import metodoPagoAnimated from "../../assets/icons/metodoPagoAnimated.json";
+import productoAnimated from "../../assets/icons/productoAnimated.json";
+import proveedorAnimated from "../../assets/icons/proveedorAnimated.json";
+import sucursalesCajaAnimated from "../../assets/icons/sucursalesCajaAnimated.json";
+import ticketAnimated from "../../assets/icons/ticketAnimated.json";
+import usuariosAnimated from "../../assets/icons/usuariosAnimated.json";
 import { usePermisosStore } from "../../store/PermisosStore";
 export function ConfiguracionesTemplate() {
   const {dataPermisosConfiguracion} = usePermisosStore();
@@ -28,6 +40,23 @@ export function ConfiguracionesTemplate() {
     <Container>
       <div id="cards">
         {dataPermisosConfiguracion.map((item, index) => {
+          // Mapear link → animación
+          const link = item?.modulos?.link || "";
+          const animationsMap = {
+            "/configuracion/empresa": empresaAnimated,
+            "/configuracion/impresoras": impresoraAnimada,
+            "/configuracion/almacenes": almacenAnimated,
+            "/configuracion/categorias": categoriaAnimated,
+            "/configuracion/clientes": clienteAnimated,
+            "/configuracion/serializacion": comprobantesAnimated,
+            "/configuracion/metodospago": metodoPagoAnimated,
+            "/configuracion/productos": productoAnimated,
+            "/configuracion/proveedores": proveedorAnimated,
+            "/configuracion/sucursalcaja": sucursalesCajaAnimated,
+            "/configuracion/ticket": ticketAnimated,
+            "/configuracion/usuarios": usuariosAnimated,
+          };
+          const animated = animationsMap[link] || null;
           return (
             <Link
               to={item.modulos.link}
@@ -36,7 +65,13 @@ export function ConfiguracionesTemplate() {
             >
               <div className="card-content">
                 <div className="card-image">
-                  <img src={item.modulos.icono} />
+                  {animated ? (
+                    <div className="lottie-wrap">
+                      <Lottieanimacion alto={98} ancho={98} animacion={animated} />
+                    </div>
+                  ) : (
+                    <img src={item.modulos.icono} />
+                  )}
                 </div>
 
                 <div className="card-info-wrapper">
@@ -174,6 +209,14 @@ const Container = styled.div`
       height: 70%;
       filter: grayscale(100%);
     }
+    .lottie-wrap {
+      width: 98px;
+      height: 98px;
+      display: grid;
+      place-items: center;
+      transition: transform .3s ease, filter .3s ease;
+      filter: grayscale(30%);
+    }
   }
 
   .card-info-wrapper {
@@ -210,6 +253,7 @@ const Container = styled.div`
   #cards:hover > .card::after {
     opacity: 1;
   }
+  .card:hover .lottie-wrap { filter: grayscale(0); transform: translateY(-2px); }
   &::before {
     background: radial-gradient(
       800px circle at var(--mouse-x) var(--mouse-y),

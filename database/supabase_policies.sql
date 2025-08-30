@@ -1,0 +1,265 @@
+-- -- Supabase setup: RLS policies, GRANTs, and admin RPCs
+-- -- Run this in Supabase SQL editor (execute all).
+
+-- -- 1) Ensure RLS is enabled
+-- ALTER TABLE public.usuarios ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE public.permisos ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE public.modulos ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE public.roles ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE public.permisos_dafault ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE public.allowed_superadmins ENABLE ROW LEVEL SECURITY;
+
+-- -- 2) Helper policy predicates
+-- -- Users can read their own usuarios row
+-- DO $$
+-- BEGIN
+-- IF NOT EXISTS (
+--   SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='usuarios' AND policyname='usuarios_self_read'
+-- ) THEN
+--   EXECUTE $$CREATE POLICY usuarios_self_read ON public.usuarios
+--     FOR SELECT TO authenticated
+--     USING (id_auth = auth.uid())$$;
+-- END IF;
+-- END$$;
+
+-- -- Admins (admin/superadmin) can read all usuarios
+-- DO $$
+-- BEGIN
+-- IF NOT EXISTS (
+--   SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='usuarios' AND policyname='usuarios_admin_read_all'
+-- ) THEN
+--   EXECUTE $$CREATE POLICY usuarios_admin_read_all ON public.usuarios
+--     FOR SELECT TO authenticated
+--     USING (
+--       EXISTS (
+--         SELECT 1 FROM public.usuarios u
+--         JOIN public.roles r ON r.id = u.id_rol
+--         WHERE u.id_auth = auth.uid() AND lower(r.nombre) IN ('admin','superadmin')
+--       )
+--     )$$;
+-- END IF;
+-- END$$;
+
+-- -- Users can update their own usuarios row (e.g., tema)
+-- DO $$
+-- BEGIN
+-- IF NOT EXISTS (
+--   SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='usuarios' AND policyname='usuarios_self_update'
+-- ) THEN
+--   EXECUTE $$CREATE POLICY usuarios_self_update ON public.usuarios
+--     FOR UPDATE TO authenticated
+--     USING (id_auth = auth.uid())
+--     WITH CHECK (id_auth = auth.uid())$$;
+-- END IF;
+-- END$$;
+
+-- -- Admins can update usuarios (e.g., estado, tema). Role changes should go through RPC below.
+-- DO $$
+-- BEGIN
+-- IF NOT EXISTS (
+--   SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='usuarios' AND policyname='usuarios_admin_update_all'
+-- ) THEN
+--   EXECUTE $$CREATE POLICY usuarios_admin_update_all ON public.usuarios
+--     FOR UPDATE TO authenticated
+--     USING (
+--       EXISTS (
+--         SELECT 1 FROM public.usuarios u
+--         JOIN public.roles r ON r.id = u.id_rol
+--         WHERE u.id_auth = auth.uid() AND lower(r.nombre) IN ('admin','superadmin')
+--       )
+--     )
+--     WITH CHECK (
+--       EXISTS (
+--         SELECT 1 FROM public.usuarios u
+--         JOIN public.roles r ON r.id = u.id_rol
+--         WHERE u.id_auth = auth.uid() AND lower(r.nombre) IN ('admin','superadmin')
+--       )
+--     )$$;
+-- END IF;
+-- END$$;
+
+-- -- permisos: owner can read own permissions
+-- DO $$
+-- BEGIN
+-- IF NOT EXISTS (
+--   SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='permisos' AND policyname='permisos_select_own'
+-- ) THEN
+--   EXECUTE $$CREATE POLICY permisos_select_own ON public.permisos
+--     FOR SELECT TO authenticated
+--     USING (
+--       EXISTS (
+--         SELECT 1 FROM public.usuarios u
+--         WHERE u.id = public.permisos.id_usuario AND u.id_auth = auth.uid()
+--       )
+--     )$$;
+-- END IF;
+-- END$$;
+
+-- -- permisos: only admins can write (admin UI)
+-- DO $$
+-- BEGIN
+-- IF NOT EXISTS (
+--   SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='permisos' AND policyname='permisos_admin_insert'
+-- ) THEN
+--   EXECUTE $$CREATE POLICY permisos_admin_insert ON public.permisos
+--     FOR INSERT TO authenticated
+--     WITH CHECK (
+--       EXISTS (
+--         SELECT 1 FROM public.usuarios u
+--         JOIN public.roles r ON r.id = u.id_rol
+--         WHERE u.id_auth = auth.uid() AND lower(r.nombre) IN ('admin','superadmin')
+--       )
+--     )$$;
+-- END IF;
+-- END$$;
+
+-- DO $$
+-- BEGIN
+-- IF NOT EXISTS (
+--   SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='permisos' AND policyname='permisos_admin_delete'
+-- ) THEN
+--   EXECUTE $$CREATE POLICY permisos_admin_delete ON public.permisos
+--     FOR DELETE TO authenticated
+--     USING (
+--       EXISTS (
+--         SELECT 1 FROM public.usuarios u
+--         JOIN public.roles r ON r.id = u.id_rol
+--         WHERE u.id_auth = auth.uid() AND lower(r.nombre) IN ('admin','superadmin')
+--       )
+--     )$$;
+-- END IF;
+-- END$$;
+
+-- -- modulos: everyone authenticated can read (frontend filters by permisos)
+-- DO $$
+-- BEGIN
+-- IF NOT EXISTS (
+--   SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='modulos' AND policyname='modulos_read_all'
+-- ) THEN
+--   EXECUTE $$CREATE POLICY modulos_read_all ON public.modulos
+--     FOR SELECT TO authenticated
+--     USING (true)$$;
+-- END IF;
+-- END$$;
+
+-- -- roles: allow read to authenticated (so UI can render role names); writes restricted at DB/RPC
+-- DO $$
+-- BEGIN
+-- IF NOT EXISTS (
+--   SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='roles' AND policyname='roles_read_all'
+-- ) THEN
+--   EXECUTE $$CREATE POLICY roles_read_all ON public.roles
+--     FOR SELECT TO authenticated
+--     USING (true)$$;
+-- END IF;
+-- END$$;
+
+-- -- permisos_dafault: only admins can read (used for admin UI)
+-- DO $$
+-- BEGIN
+-- IF NOT EXISTS (
+--   SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='permisos_dafault' AND policyname='permisos_dafault_admin_read'
+-- ) THEN
+--   EXECUTE $$CREATE POLICY permisos_dafault_admin_read ON public.permisos_dafault
+--     FOR SELECT TO authenticated
+--     USING (
+--       EXISTS (
+--         SELECT 1 FROM public.usuarios u
+--         JOIN public.roles r ON r.id = u.id_rol
+--         WHERE u.id_auth = auth.uid() AND lower(r.nombre) IN ('admin','superadmin')
+--       )
+--     )$$;
+-- END IF;
+-- END$$;
+
+-- -- allowed_superadmins: only superadmin can read/write (manage whitelist)
+-- DO $$
+-- BEGIN
+-- IF NOT EXISTS (
+--   SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='allowed_superadmins' AND policyname='allowed_superadmins_super_read'
+-- ) THEN
+--   EXECUTE $$CREATE POLICY allowed_superadmins_super_read ON public.allowed_superadmins
+--     FOR SELECT TO authenticated
+--     USING (
+--       EXISTS (
+--         SELECT 1 FROM public.usuarios u
+--         JOIN public.roles r ON r.id = u.id_rol
+--         WHERE u.id_auth = auth.uid() AND lower(r.nombre) = 'superadmin'
+--       )
+--     )$$;
+-- END IF;
+-- END$$;
+
+-- DO $$
+-- BEGIN
+-- IF NOT EXISTS (
+--   SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='allowed_superadmins' AND policyname='allowed_superadmins_super_write'
+-- ) THEN
+--   EXECUTE $$CREATE POLICY allowed_superadmins_super_write ON public.allowed_superadmins
+--     FOR INSERT TO authenticated
+--     WITH CHECK (
+--       EXISTS (
+--         SELECT 1 FROM public.usuarios u
+--         JOIN public.roles r ON r.id = u.id_rol
+--         WHERE u.id_auth = auth.uid() AND lower(r.nombre) = 'superadmin'
+--       )
+--     )$$;
+-- END IF;
+-- END$$;
+
+-- DO $$
+-- BEGIN
+-- IF NOT EXISTS (
+--   SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='allowed_superadmins' AND policyname='allowed_superadmins_super_delete'
+-- ) THEN
+--   EXECUTE $$CREATE POLICY allowed_superadmins_super_delete ON public.allowed_superadmins
+--     FOR DELETE TO authenticated
+--     USING (
+--       EXISTS (
+--         SELECT 1 FROM public.usuarios u
+--         JOIN public.roles r ON r.id = u.id_rol
+--         WHERE u.id_auth = auth.uid() AND lower(r.nombre) = 'superadmin'
+--       )
+--     )$$;
+-- END IF;
+-- END$$;
+
+-- -- 3) GRANT execute on bootstrap function to authenticated users
+-- GRANT EXECUTE ON FUNCTION public.bootstrap_user_after_login(text, text) TO authenticated;
+
+-- -- Optional: admin RPC to approve a user and set their role, then assign default permissions.
+-- CREATE OR REPLACE FUNCTION public.approve_user_role(p_id_usuario INT, p_role_name TEXT)
+-- RETURNS VOID
+-- LANGUAGE plpgsql
+-- SECURITY DEFINER
+-- SET search_path = public
+-- AS $$
+-- DECLARE
+--   v_caller_is_admin BOOLEAN;
+--   v_role_id INT;
+-- BEGIN
+--   -- Check caller is admin/superadmin
+--   SELECT EXISTS (
+--     SELECT 1 FROM public.usuarios u
+--     JOIN public.roles r ON r.id = u.id_rol
+--     WHERE u.id_auth = auth.uid() AND lower(r.nombre) IN ('admin','superadmin')
+--   ) INTO v_caller_is_admin;
+
+--   IF NOT v_caller_is_admin THEN
+--     RAISE EXCEPTION 'Not authorized';
+--   END IF;
+
+--   SELECT id INTO v_role_id FROM public.roles WHERE lower(nombre) = lower(p_role_name) LIMIT 1;
+--   IF v_role_id IS NULL THEN
+--     RAISE EXCEPTION 'Role % not found', p_role_name;
+--   END IF;
+
+--   -- Update user role
+--   UPDATE public.usuarios SET id_rol = v_role_id WHERE id = p_id_usuario;
+
+--   -- Reset permisos and apply defaults for new role
+--   DELETE FROM public.permisos WHERE id_usuario = p_id_usuario;
+--   PERFORM public.assign_default_permissions(p_id_usuario);
+-- END;$$;
+
+-- GRANT EXECUTE ON FUNCTION public.approve_user_role(INT, TEXT) TO authenticated;

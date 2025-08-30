@@ -323,8 +323,8 @@ const TicketVenta = async (output, data) => {
           style: "text",
         },
         {
-          text: "https://codigo369web.com/",
-          link: "https://codigo369web.com/",
+          text: "ComercaiPro",
+          link: "ComercaiPro",
           style: "link",
         },
       ],

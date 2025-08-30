@@ -24,9 +24,12 @@ import { Inventario } from "../pages/Inventario";
 import { ConfiguracionTicket } from "../pages/ConfiguracionTicket";
 import { MiPerfil } from "../pages/MiPerfil";
 import { SerializacionComprobantes } from "../pages/SerializacionComprobantes";
+import { OAuthCallback } from "../pages/OAuthCallback";
+import { AccesoPendiente } from "../pages/AccesoPendiente";
 export function MyRoutes() {
   return (
     <Routes>
+  <Route path="/auth/callback" element={<OAuthCallback />} />
       <Route
         path="/login"
         element={
@@ -131,7 +134,9 @@ export function MyRoutes() {
           </Layout>
         }
       />
-      <Route path="*" element={<PageNot />} />
+  <Route path="/404" element={<PageNot />} />
+  <Route path="/acceso-pendiente" element={<AccesoPendiente />} />
+  <Route path="*" element={<Navigate to="/404" replace />} />
       <Route
         path="/configuracion/clientes"
         element={
